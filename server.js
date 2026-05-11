@@ -20,58 +20,56 @@ const redis = new Redis("rediss://default:AVNS_GKcjolQaukMIL4aqlPD@valkey-3a46c3
 });
 
 // --- DOSEN ROUTES ---
-app.get('/dosen', async (req, res) => {
-  const result = await pool.query('SELECT * FROM dosen ORDER BY id DESC');
+app.get('/api/dosen', async (req, res) => {
+  const result = await pool.query('SELECT * FROM dosen ORDER BY id ASC');
   res.json(result.rows);
 });
 
-app.post('/dosen', async (req, res) => {
+app.post('/api/dosen', async (req, res) => {
   const { nama, nip } = req.body;
   await pool.query('INSERT INTO dosen (nama, nip) VALUES ($1, $2)', [nama, nip]);
   res.json({ success: true });
 });
 
-app.put('/dosen/:id', async (req, res) => {
-  const { id } = req.params;
+app.put('/api/dosen/:id', async (req, res) => {
   const { nama, nip } = req.body;
-  await pool.query('UPDATE dosen SET nama=$1, nip=$2 WHERE id=$3', [nama, nip, id]);
+  await pool.query('UPDATE dosen SET nama=$1, nip=$2 WHERE id=$3', [nama, nip, req.params.id]);
   res.json({ success: true });
 });
 
-app.delete('/dosen/:id', async (req, res) => {
+app.delete('/api/dosen/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM dosen WHERE id=$1', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: "Gagal hapus: Dosen masih memiliki mahasiswa bimbingan!" }); }
+  } catch (e) { res.status(400).json({ error: "Gagal: Dosen masih membimbing mahasiswa!" }); }
 });
 
 // --- MAHASISWA ROUTES ---
-app.get('/mahasiswa', async (req, res) => {
+app.get('/api/mahasiswa', async (req, res) => {
   try {
     const cached = await redis.get('all_mhs');
     if (cached) return res.json({ source: 'cache', data: JSON.parse(cached) });
-
     const result = await pool.query('SELECT m.*, d.nama as nama_dosen FROM mahasiswa m LEFT JOIN dosen d ON m.id_dosen_pa = d.id ORDER BY m.id DESC');
     await redis.setex('all_mhs', 60, JSON.stringify(result.rows));
     res.json({ source: 'database', data: result.rows });
   } catch (e) { res.json({ source: 'error', data: [] }); }
 });
 
-app.post('/mahasiswa', async (req, res) => {
+app.post('/api/mahasiswa', async (req, res) => {
   const { nama, nim, id_dosen_pa } = req.body;
   await pool.query('INSERT INTO mahasiswa (nama, nim, id_dosen_pa) VALUES ($1, $2, $3)', [nama, nim, id_dosen_pa]);
   await redis.del('all_mhs');
   res.json({ success: true });
 });
 
-app.put('/mahasiswa/:id', async (req, res) => {
+app.put('/api/mahasiswa/:id', async (req, res) => {
   const { nama, nim, id_dosen_pa } = req.body;
   await pool.query('UPDATE mahasiswa SET nama=$1, nim=$2, id_dosen_pa=$3 WHERE id=$4', [nama, nim, id_dosen_pa, req.params.id]);
   await redis.del('all_mhs');
   res.json({ success: true });
 });
 
-app.delete('/mahasiswa/:id', async (req, res) => {
+app.delete('/api/mahasiswa/:id', async (req, res) => {
   await pool.query('DELETE FROM mahasiswa WHERE id=$1', [req.params.id]);
   await redis.del('all_mhs');
   res.json({ success: true });
@@ -79,4 +77,4 @@ app.delete('/mahasiswa/:id', async (req, res) => {
 
 module.exports = app;
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Active on ${PORT}`));
+app.listen(PORT, () => console.log('Server Live'));
