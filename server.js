@@ -7,13 +7,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Koneksi Database dari Aiven
+// Koneksi Database dari Aiven (DENGAN FIX SSL)
 const pool = new Pool({
   connectionString: "postgres://avnadmin:AVNS_RzXH8aDPx1O4w3MufiP@pg-3c48c087-gungde1967-31e9.i.aivencloud.com:16978/defaultdb?sslmode=require",
+  ssl: {
+    rejectUnauthorized: false // <-- Tambahkan baris ini agar Vercel mau konek
+  }
 });
 
-// Koneksi Redis dari Aiven
-const redis = new Redis("rediss://default:AVNS_GKcjolQaukMIL4aqlPD@valkey-3a46c36f-gungde1967-31e9.i.aivencloud.com:16979");
+// Koneksi Redis dari Aiven (DENGAN FIX SSL)
+const redis = new Redis("rediss://default:AVNS_GKcjolQaukMIL4aqlPD@valkey-3a46c36f-gungde1967-31e9.i.aivencloud.com:16979", {
+  tls: {
+    rejectUnauthorized: false // <-- Tambahkan baris ini juga
+  }
+});
 
 // Inisialisasi Tabel (Otomatis)
 const initDB = async () => {
