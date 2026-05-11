@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistem KRS Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-blue-800 mb-8">Sistem Informasi KRS (PaaS)</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="font-bold mb-4">Tambah Dosen</h2>
+            <div class="flex gap-2">
+                <input id="dNama" placeholder="Nama Dosen" class="border p-2 rounded w-full">
+                <input id="dNip" placeholder="NIP" class="border p-2 rounded w-full">
+                <button onclick="addDosen()" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="font-bold mb-4">Tambah Mahasiswa</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <input id="mNama" placeholder="Nama Mahasiswa" class="border p-2 rounded">
+                <input id="mNim" placeholder="NIM" class="border p-2 rounded">
+                <select id="mDosen" class="border p-2 rounded col-span-2 shadow-sm"></select>
+                <button onclick="addMahasiswa()" class="bg-green-600 text-white px-4 py-2 rounded col-span-2">Simpan Mahasiswa</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="font-bold mb-4">Daftar Mahasiswa (Data Caching Aktif)</h2>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="p-2 border">Nama</th>
+                        <th class="p-2 border">NIM</th>
+                        <th class="p-2 border">Dosen PA</th>
+                    </tr>
+                </thead>
+                <tbody id="mTable"></tbody>
+            </table>
+            <p id="status" class="mt-4 text-sm italic text-gray-500"></p>
+        </div>
+    </div>
+
+    <script>
+        const API = ""; // Biarkan kosong agar otomatis pakai URL hosting
+
+        async function loadData() {
+            const resDosen = await fetch(API + '/dosen');
+            const dosens = await resDosen.json();
+            document.getElementById('mDosen').innerHTML = dosens.map(d => `<option value="${d.id}">${d.nama} (${d.nip})</option>`).join('');
+
+            const resMhs = await fetch(API + '/mahasiswa');
+            const dataMhs = await resMhs.json();
+            document.getElementById('mTable').innerHTML = dataMhs.data.map(m => `
+                <tr>
+                    <td class="p-2 border">${m.nama}</td>
+                    <td class="p-2 border">${m.nim}</td>
+                    <td class="p-2 border">${m.nama_dosen || '-'}</td>
+                </tr>
+            `).join('');
+            document.getElementById('status').innerText = "Sumber data: " + dataMhs.source.toUpperCase();
+        }
+
+        async function addDosen() {
+            await fetch(API + '/dosen', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nama: document.getElementById('dNama').value, nip: document.getElementById('dNip').value })
+            });
+            loadData();
+        }
+
+        async function addMahasiswa() {
+            await fetch(API + '/mahasiswa', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    nama: document.getElementById('mNama').value, 
+                    nim: document.getElementById('mNim').value,
+                    id_dosen_pa: document.getElementById('mDosen').value
+                })
+            });
+            loadData();
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
